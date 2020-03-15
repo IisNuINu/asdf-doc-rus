@@ -1,0 +1,351 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head>
+    <title>Начало работы с ASDF</title>
+    <meta name="generator" content="muse.el">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf8">
+
+    <link rel="stylesheet" type="text/css" href="Getting%20started%20with%20ASDF_files/style.css">
+  </head>
+  <body>
+    <h1>Getting started with ASDF</h1>
+    <!-- Page published by Emacs Muse begins here -->
+
+<p>Mario S. Mommer &lt;<a href="mailto:mommer@common-lisp.net">mommer@common-lisp.net</a>&gt;</p>
+
+<p> 
+ Last modified: April 05, 2006.
+
+</p><h2><a name="sec1" id="sec1"></a>
+Содержание</h2><p></p>
+<dl class="contents">
+<dt class="contents">
+<a href="#sec1">Содержание</a>
+</dt>
+<dt class="contents">
+<a href="#sec2">Введение</a>
+</dt>
+<dd>
+<dl class="contents">
+<dt class="contents">
+<a href="#sec3">Цель этого документа</a>
+</dt>
+<dt class="contents">
+<a href="#sec4">Какую проблему решает ASDF?</a>
+</dt>
+<dt class="contents">
+<a href="#sec5">Юридические вопросы</a>
+</dt>
+</dl>
+</dd>
+<dt class="contents">
+<a href="#sec6">Определение систем с ASDF</a>
+</dt>
+<dd>
+<dl class="contents">
+<dt class="contents">
+<a href="#sec7">Базовый случай</a>
+</dt>
+<dt class="contents">
+<a href="#sec8">Более сложный пример</a>
+</dt>
+<dt class="contents">
+<a href="#sec9">Система с модулями</a>
+</dt>
+<dt class="contents">
+<a href="#sec10">Система зависящая от других систем</a>
+</dt>
+</dl>
+</dd>
+<dt class="contents">
+<a href="#sec11">Как использовать файлы определения системы</a>
+</dt>
+</dl>
+
+<h2><a name="sec2" id="sec2"></a>
+Введение</h2>
+
+<h3><a name="sec3" id="sec3"></a>
+Цель этого документа</h3>
+
+<p class="first">Цель этого документа - дать краткое введение в использование
+<code>ASDF</code>, (еще одного средства определения систем) Another System Definition Facility. 
+Речь пойдет не о тонкостях работы и советах, и не о разработке самого <code>ASDF</code>,
+а об инструментах определения системы в целом.</p>
+
+<p>Файл определения системы - это ничто иное, как описание зависимостей между
+файлами исходного кода таким образом, что они могут быть скомпилированы и загружены
+в правильном порядке. Файл <code>A.lisp</code> зависит от файла <code>B.lisp</code>,
+если последний содержит определения и/или код, который используется в <code>A.lisp</code><sup><a name="fnr.1" href="#fn.1">1</a></sup>.</p>
+
+<p>Решение этой проблемы в подавляющем числе случаев довольно тривиально,
+поэтому небольшие хакерские скрипты обычно будут работать. Однако изучение
+правильного инструмента, сэкономит вам много времени в будущем. В этом уроке мы
+сконцентрируемся на простых примерах и общем использовании широко известного
+инструмента, <code>ASDF</code>.  Мы опишем более продвинутые функции этого
+инструмента в руководстве по <code>ASDF</code> <sup><a name="fnr.2" href="#fn.2">2</a></sup>.</p>
+
+<h3><a name="sec4" id="sec4"></a>
+Какую проблему решает <code>ASDF</code>? </h3>
+
+<p class="first">Когда вы загружаете исходный код некоторого програмного
+обеспечения из интернета или получаете его из какого-либо другого источника,
+вы обычно получаете не аморфную группу файлов, а систему компонентов, которые
+каким-то конкретным образом зависят друг от друга. Следствием этого является то,
+что если вы хотите собрать програмное обеспечение (будь то библиотека или приложение),
+вам, вероятно, придется собирать эти компоненты и компоненты этих компонентов по
+порядку, возможно выполняя некоторую особую обработку некоторых из них. Вы конечно
+были бы очень благодарны, если бы разработчик все подготовил, и вы могли бы запустить
+процесс сборки одной командой.</p>
+
+<p>Если вы являетесь разработчиком, работающим в проекте с несколькими
+компонентами, вам, вероятно, понадобиться какой-то механизм, который
+отслеживает зависимости между этими компонентами, так что если вы
+изменяете один компонент, это вызовет пересборку, которая перекомпилирует
+и перезагружает только те компоненты, которые он влияет.</p>
+
+<p>Наконец, вам, вероятно, нужен согласованный способ справляться с
+зависимостями между компонентами, а также создавать и загружать
+программные системы просто потому, что это экономит время для каждого
+при установке и использовании программного обеспечения.</p>
+
+<p><code>ASDF</code>, грубо говоря, это расширяемое средство для определения
+зависимостей между программными компонентами и определения возможных деталей
+процесса сборки/построения системы. К тому же он широко используется, поэтому
+вы можете пердположить, что определение вашей системы будет понятно многим
+другим людям.</p>
+
+<p>То же самое можно сказать и о <code>mk:defsystem</code>, у которой есть как
+поклонники, так и недоброжелатели. Мы сконцентрируемся здесь только на <code>ASDF</code>, 
+так как мы должны с чего-то начать. В любом случае, фактические различия между этими двумя
+подходами становяться очевидными только для опытного пользователя.</p>
+
+<h3><a name="sec5" id="sec5"></a>
+Юридические вопросы</h3>
+
+<p class="first"> <!--Creative Commons License--><a rel="license" href="http://creativecommons.org/licenses/by/2.5/"><img alt="Creative Commons License" src="http://creativecommons.org/images/public/somerights20.png" border="0"></a><br>Эта работа лицензирована лицензией <a rel="license" href="http://creativecommons.org/licenses/by/2.5/">Creative Commons
+Attribution 2.5 License</a>.<!--/Creative Commons License--><!--
+<rdf:RDF xmlns="http://web.resource.org/cc/"
+xmlns:dc="http://purl.org/dc/elements/1.1/"
+xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"> <Work
+rdf:about=""> <license
+rdf:resource="http://creativecommons.org/licenses/by/2.5/" /> <dc:type
+rdf:resource="http://purl.org/dc/dcmitype/Text" /> </Work> <License
+rdf:about="http://creativecommons.org/licenses/by/2.5/"><permits
+rdf:resource="http://web.resource.org/cc/Reproduction"/><permits
+rdf:resource="http://web.resource.org/cc/Distribution"/><requires
+rdf:resource="http://web.resource.org/cc/Notice"/><requires
+rdf:resource="http://web.resource.org/cc/Attribution"/><permits
+rdf:resource="http://web.resource.org/cc/DerivativeWorks"/></License></rdf:RDF>
+-->
+
+</p><h2><a name="sec6" id="sec6"></a>
+Определение систем с <code>ASDF</code></h2><p></p>
+
+<p>Определение системы <code>ASDF</code> храниться в файле с расширением
+<code>.asd</code>. Чтобы сделать обсуждение более понятным, мы собираемся сделать
+вид, что хотим написать средство определения системы для нашего программного
+проекта, названного <code>cow</code>(корова).</p>
+
+<p>Файл определения системы должен называться <code>cow.asd</code>, и по крайней мере,
+обычно, должен находиться в том же каталоге, что и ваш исходный код. Если вы используете
+emacs, вы можете поместить следующую строку в первую строку <code>cow.asd</code>.</p>
+
+<pre class="example">;;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Base: 10 -*-
+</pre>
+
+<p>Это гарантирует, что вкючиться правильная поддержка синтаксиса, что необходмо, потому что
+по умолчанию emacs ничего не знает о <code>.asd</code> файлах.</p>
+
+<p>После этого <code>cow.asd</code> должен начинаться со следующего кода
+(само собой ему могут предшествовать или сопровождать некоторые комментарии)</p>
+
+<pre class="example">(defpackage #:cow-asd
+  (:use :cl :asdf))
+
+(in-package :cow-asd)
+</pre>
+
+<p>Следующим шагом является написание формы <code>defsystem</code>, вместе с некоторой
+(необязательной)дополнительной информацией.</p>
+
+<pre class="example">(defsystem cow
+  :name "cow"
+  :version "0.0.0"
+  :maintainer "T. God"
+  :author "Desmon Table"
+  :licence "BSD sans advertising clause (see file COPYING for details)"
+  :description "Cow"
+  :long-description "Lisp implementation of our favorite ruminant"
+
+</pre>
+
+<p>Как вы можете догадаться, обязательна только первая строка.</p>
+
+<h3><a name="sec7" id="sec7"></a>
+Базовый случай</h3>
+
+<p class="first">В простейшем случае у вас есть каталог с несколькими файлами. И самый
+простой случай, когда зависимость у ваших файлов линейна. То есть вы можете составить
+список файлов так, чтобы первым загружался первый указанный файл, вторым -второй и т.д.</p>
+
+<p>В этом случае, форма <code>defsystem</code> может выглядеть следующим образом.</p>
+
+<pre class="example">(defsystem cow
+  ;;; (Optional items omitted)
+  :serial t ;; Указывает на линейную зависимость.
+  :components ((:file "defpackage")
+               (:file "legs")
+               (:file "tail")
+               (:file "head")))
+</pre>
+
+<h3><a name="sec8" id="sec8"></a>
+Более сложный случай</h3>
+
+<p class="first">Предположим, что у нас есть те же файлы, что и раньше, но мы хотели бы
+более точно указать зависимости. Существует файл с именем <code>defpackage.lisp</code>, 
+от которого зависят все остальные. И у нас есть файл <code>tail.lisp</code> по какой то
+таинственной причене зависящий от <code>legs.lisp</code>. Форма
+<code>defsystem</code> для этого проекта может выглядеть следующим образом.</p>
+
+<pre class="example">(defsystem cow
+  ;;; (Optional items omitted)
+  :components ((:file "tail"
+                      :depends-on ("package" "legs"))
+               (:file "legs"
+                      :depends-on ("package"))
+               (:file "head"
+                      :depends-on ("package"))
+               (:file "package")))
+</pre>
+
+<p>В этом случае мы храним файл <code>cow.asd</code> в том же каталоге, что и исходные
+файлы. Если вы хотите опробовать нашу замечательную систему <code>cow</code>, вы можете
+перейти к соответствующему <a href="#go">разделу</a>.</p>
+
+<h3><a name="sec9" id="sec9"></a>
+Система с модулями</h3>
+
+<p class="first">Предположим, что у нас есть следующая, более сложная структура. У нас есть
+файлы <code>head.lisp</code> и <code>legs.lisp</code>. Но у нас так же есть подсистема
+под названием <code>respiratory</code>, которая состоит из нескольких файлов и размещается
+в своем собственном подкаталоге, называемом <code>breathing</code> (это подкаталог каталога,
+в котором находитсья файл <code>cow.asd</code> lives).  Точно так же у нас есть другая
+подсистема называемая <code>circulation</code>. Форма <code>defsystem</code> может выглядеть
+примерно так:</p>
+
+<pre class="example">(defsystem cow
+  :components ((:file "head" :depends-on ("package"))
+               (:file "tail" :depends-on ("package"
+                                           circulation))
+               (:file "package")
+               (:module circulation
+                        :components ((:file "water"
+                                            :depends-on
+                                            "package")
+                                     (:file "assorted-solids"
+                                            :depends-on
+                                            "package")
+                                     (:file "package")))
+               (:module respiratory
+                        :pathname "breathing"
+                        :components (...))))
+</pre>
+
+<p>Обратите внимание, что все файлы модуля <code>circulation</code> находятся в
+подкаталоге  <code>circulation</code>. Таким образом файл <code>package.lisp</code> в
+модуле <code>circulation</code> это файл отличающийся от того, что находиться уровнем выше.</p>
+
+<p>Модуль может иметь в качестве компонентов как файлы, так и другие модули,
+которые в свою очередь могут содержать файлы и модули в качестве компонентов.
+Важно отметить, что зависимости могут быть определены только <em> внутри данного
+набора компонентов</em>. Таким образом, файл <code>tail.lisp</code> не может зависеть
+от файла <code>assorted-solids</code>, который является компонентом подмодуля.</p>
+
+<h3><a name="sec10" id="sec10"></a>
+Система зависящая от других систем</h3>
+
+<p class="first">Система, которая зависит от других систем, будет выглядеть точно так же, 
+как обычная, за исключением дополнительной опции <code>:depends-on</code>. Похоже на это:</p>
+
+<pre class="example">(defsystem cow
+  ;;; ...
+  :components (...)
+  :depends-on ("other-system"))
+</pre>
+
+<p><a name="go" id="go"></a></p>
+
+<h2><a name="sec11" id="sec11"></a>
+Как использовать файлы определения системы</h2>
+
+<p class="first">Файлы определения системы находятся в каталоге, где находится
+соответствующая часть программного обеспечения. Однако вм не нужно иметь
+этот каталог в качестве рабочего(текущего) каталога, чтобы иметь возможность
+создавать(build) и загружать(load) указанное программное обеспечение. Вам 
+нужно лишь поместить <em>символическую ссылку</em> на файл определения системы в
+каталог, в котором  <code>ASDF</code> выполняет поиск определения систем.</p>
+
+<p>Обычная настройка выглядит слеудющим образом. Для начала вам нужно загрузить <code>ASDF</code>. 
+В некоторых реализациях <code>ASDF</code> уже загружен. В других, это сделать
+весьма просто, написав</p>
+
+<pre class="example">  (require 'asdf)
+</pre>
+в то время как в других, вам может быть понадобиться сначала установить его самостоятельно. Вы можете
+получтить его одним файлом  <a href="http://www.cliki.net/asdf">здесь</a>, и поместить в какой нибудь
+видимое лиспу место. Например, если ваше имя это <code>foo</code>, в каталог
+<code>/home/foo/lisp/utils/</code>. Вы также можете скомпилировать этот файл.
+
+<p>Теперь где нибудь, в файле инициализации вашей реализации Common Lisp 
+(для CMUCL это будет <code>.cmucl-init.lisp</code> в вашем домашнем каталоге) должен
+появиться вариант следующего отрывка кода.</p>
+
+<pre class="example">(load "/home/foo/lisp/utils/asdf")
+
+(setf asdf:*central-registry*
+   ;; Default directories, usually just the ``current directory''
+  '(*default-pathname-defaults*
+
+    ;; Additional places where ASDF can find
+    ;; system definition files
+    #p"/home/foo/lisp/systems/"
+    #p"/usr/share/common-lisp/systems/"))
+</pre>
+
+<p>Команда для сборки и загрузки системы cow будет такая:</p>
+
+<pre class="example">(asdf:operate 'asdf:load-op 'cow)
+
+</pre>
+
+<p>Если файл <code>cow.asd</code> окажется в текущем рабочем каталоге, 
+процесс сборки и загрузки начнется там. Если нет, ASDF
+будет искать в каталогах центрального реестра(central registry), и искать
+файл с определением системы с именем <code>cow.asd</code>, или символическую
+ссылку на него. Если он найдет последюю, он перейдет по ссылке на исходный файл
+и запустит процесс сборки в соответствующем каталоге. Если он найдет файл, он
+запустит процесс сборки в каталоге, где он его найдет.</p>
+
+<p>Итак если вы создадите символическую ссылку в <code>/home/foo/lisp/systems/</code> 
+на файл определения системы <code>cow</code>, выполнив (например)</p>
+
+<pre class="example">$ cd &lt;where-your-system-defs-are&gt;
+$ ln -s /home/foo/code/cow/cow.asd
+</pre>
+
+<p>Затем вы можете собирать и загружать программное обеспечение для cow,
+не находясь в каталоге в котором оно находиться, просто введя команду:
+</p><pre class="example">(asdf:operate 'asdf:load-op 'cow)
+</pre><p></p>
+
+<hr>
+<p class="footnote"><a name="fn.1" href="#fnr.1">1.</a> In lisp, things can get a little more complicated. We limit
+ourselves here to the most common cases, and for them this
+definition is good enough.</p>
+
+<p class="footnote"><a name="fn.2" href="#fnr.2">2.</a>  D. Barlow et al., <a href="http://constantly.at/lisp/asdf/">``asdf Manual''</a></p>
+
+<!-- Page published by Emacs Muse ends here -->
+
+</body></html>
